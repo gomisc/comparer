@@ -1,4 +1,4 @@
-module git.corout.in/golibs/comparer
+module git.eth4.dev/golibs/comparer
 
 go 1.19
 
