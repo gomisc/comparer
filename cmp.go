@@ -56,7 +56,7 @@ func BuildAllowUnexported(i ...interface{}) cmp.Option {
 func getStructItemsRecursiveOf(i ...interface{}) (items []interface{}) {
 	filter := make(map[string]struct{})
 
-	for i := range findMessageWithUnexportedFields(i...) {
+	for i := range findObjectWithUnexportedFields(i...) {
 		typeStr := reflect.TypeOf(i).String()
 		if _, ok := filter[typeStr]; !ok {
 			items = append(items, i)
@@ -67,11 +67,11 @@ func getStructItemsRecursiveOf(i ...interface{}) (items []interface{}) {
 	return items
 }
 
-func findMessageWithUnexportedFields(obj ...interface{}) <-chan interface{} {
+func findObjectWithUnexportedFields(obj ...interface{}) <-chan interface{} {
 	mchan := make(chan interface{})
 	// рекурсивный проход
 	go func() {
-		walkMessages(mchan, obj...)
+		walkObjects(mchan, obj...)
 		close(mchan)
 	}()
 
@@ -79,18 +79,18 @@ func findMessageWithUnexportedFields(obj ...interface{}) <-chan interface{} {
 }
 
 // nolint
-func walkMessages(ch chan interface{}, src ...interface{}) {
-	for _, m := range src {
+func walkObjects(ch chan interface{}, src ...interface{}) {
+	for _, o := range src {
 		var children []interface{}
 
-		ch <- m
+		ch <- o
 
-		v := reflect.ValueOf(m)
+		v := reflect.ValueOf(o)
 		t := v.Type()
 
 		for i := 0; i < t.NumField(); i++ {
 			f := v.Field(i)
-			// для структур которые являются слайсами внутри указанных структур
+			// проход по структурам вложенным в слайсы
 			if f.Kind() == reflect.Slice {
 				if f.Type().Elem().Kind() == reflect.Ptr {
 					if f.Type().Elem().Elem().Kind() == reflect.Struct {
@@ -117,6 +117,6 @@ func walkMessages(ch chan interface{}, src ...interface{}) {
 			}
 		}
 
-		walkMessages(ch, children...)
+		walkObjects(ch, children...)
 	}
 }
